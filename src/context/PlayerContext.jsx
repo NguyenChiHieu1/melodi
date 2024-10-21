@@ -1,5 +1,9 @@
 import { createContext, useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { jwtDecode } from "jwt-decode";
+import { useNavigate } from "react-router-dom";
 
 export const PlayerContext = createContext();
 
@@ -7,12 +11,59 @@ const PlayerContextProvider = (props) => {
   const audioRef = useRef();
   const seekBg = useRef();
   const seekBar = useRef();
+  const volumeBg = useRef();
+  const volumeBar = useRef();
+
+  const [historySongList, setHistorySongList] = useState([]);
 
   const url = "http://localhost:8000";
+  const navigate = useNavigate();
+  const [addPlaylist, setAddPlaylist] = useState({
+    on: false,
+    name: "",
+    status: "",
+    id: "",
+  });
   const [songsData, setSongsData] = useState([]);
+  const [songsDataWeekly, setSongsDataWeekly] = useState([]);
+  const [songsDataNew, setSongsDataNew] = useState([]);
   const [albumsData, setAlbumsData] = useState([]);
+  const [artistsData, setArtistsData] = useState([]);
+  const [playlistsData, setPlaylistsData] = useState([]);
+  const [playlistsPublicData, setPlaylistsPublicData] = useState([]);
+  const [libraryData, setLibraryData] = useState({});
+  // const [playlistId, setPlayListId] = useState({});
+
+  //Dung để check login
+  const [isLogin, setIsLogin] = useState(false);
+  const [infoLogin, setInfoLogin] = useState({
+    name: "",
+    id: "",
+    token: "",
+  });
+  // Dùng đẻ check bài hát nào đang play
+  const [checkSongPlay, setCheckSongPlay] = useState({
+    isPlaying: false,
+    id: "",
+  });
+  //Dung de lap bai hat
+  const [isRepeat, setIsRepeat] = useState(false);
+  const [isRandom, setIsRandom] = useState(false);
+  //Hiển thị danh sách đang phát
+  const [isShowListPlay, setIsShowListPlay] = useState(false);
+  //Bài hát đang hát
   const [track, setTrack] = useState(songsData[0]);
+  //Danh sách phát
+  const [playListNow, setPlayListNow] = useState([]);
+  const [infoPlayListNow, setInfoPlayListNow] = useState({
+    name: "",
+    image: "",
+    id: "",
+    artist: "",
+  });
+  //Trạng thái bài hát: chạy/dừng/next/...
   const [playStatus, setPlayStatus] = useState(false);
+
   const [time, setTime] = useState({
     currentTime: {
       second: 0,
@@ -24,6 +75,50 @@ const PlayerContextProvider = (props) => {
     },
   });
 
+  // const getPlayListById = (id) => {
+  //   playlistsData.map((item) => {
+  //     if (item._id === id) {
+  //       setPlayListId(item);
+  //     }
+  //   });
+  // };
+  //
+
+  //
+  // ------------------------------------Function to open the AddPlaylist component
+  const openAddPlaylist = (name, status, id) => {
+    setAddPlaylist({
+      ...addPlaylist,
+      on: true,
+      name: name,
+      status: status,
+      id: id,
+    });
+  };
+
+  // ---------------------------------------Function to close the AddPlaylist component
+  const closeAddPlaylist = () => {
+    setAddPlaylist({ ...addPlaylist, on: false, name: "", status: "" }); // Reset the state if needed
+  };
+
+  //lấy ngẫu nhiên mảng
+  const shuffleArray = async (array) => {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    // console.log("shuffleArray", array.slice(0, 6));
+    return array.slice(0, 6);
+  };
+
+  const sortArray = async (array, sortBy = "createdAt") => {
+    const topSongs = await array
+      .sort((a, b) => b[sortBy] - a[sortBy])
+      .slice(0, 10);
+    // console.log("sortArray", array);
+    return topSongs;
+  };
+
   const play = () => {
     audioRef.current.play();
     setPlayStatus(true);
@@ -33,35 +128,187 @@ const PlayerContextProvider = (props) => {
     audioRef.current.pause();
     setPlayStatus(false);
   };
+  // ---------------------add history,call API
+  // const addHistoryListen = async (song) => {
+  //   const check = historySong?.findIndex((item) => item._id === song._id);
+  //   if (check > -1) {
+  //     setHistorySongList((prev) => {
+  //       return [song, ...prev.slice(0, check)];
+  //     });
+  //   } else {
+  //     setHistorySongList((prev) => {
+  //       return [song, ...prev];
+  //     });
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   localStorage.setItem("HistorySong", historySongList);
+  // }, [historySongList]);
+
+  // useEffect(() => {
+  //   let historySong;
+  //   try {
+  //     historySong = JSON.parse(localStorage.getItem("HistorySong")) || [];
+
+  //   } catch (error) {
+  //     historySong = [];
+  //   }
+  //   setHistorySongList(historySong);
+  // }, [isLogin]);
+
+  // const putHistoryListener = async () => {
+  //   try {
+  //     const historyListenSong = localStorage.setItem(
+  //       "HistorySong",
+  //       historySongList
+  //     );
+  //     const response = await axios.put(
+  //       `${url}/api/user/history`,
+  //       historyListenSong,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${infoLogin.token}`, // Gửi token xác thực nếu cần
+  //         },
+  //       }
+  //     );
+
+  //     if (response.data.success) {
+  //       console.log("Update history song successfull");
+  //     } else {
+  //       toast.error(
+  //         response.data.message || "Failed to photo update to playlist."
+  //       );
+  //     }
+  //   } catch (error) {
+  //     if (error.response) {
+  //       // Nếu API trả về mã lỗi
+  //       if (error.response.status === 400) {
+  //         toast.error(
+  //           error.response.data.message || "Failed to photo update to library."
+  //         );
+  //       } else {
+  //         toast.error("Error occurred while photo update library");
+  //       }
+  //     } else {
+  //       console.error("Error while adding to library:", error);
+  //       toast.error("Error occurred while adding to library");
+  //     }
+  //   }
+  // };
+  // ---------------
+
+  const removeSongFromQueue = async (songId) => {
+    setPlayListNow((prev) => prev.filter((item) => item._id !== songId));
+  };
+
+  const addSongToQueue = async (id) => {
+    const findSong = songsData.find((item) => id === item._id);
+    if (!findSong) return; // Nếu không tìm thấy bài hát, thoát hàm
+
+    // Kiểm tra xem bài hát đã tồn tại trong danh sách hàng đợi chưa
+    const trackExists = playListNow.some((item) => item._id === findSong._id);
+    if (!trackExists) {
+      setPlayListNow((prev) => [findSong, ...prev]); // Chỉ thêm nếu bài hát chưa tồn tại
+    }
+  };
+
+  const addAlbumToQueue = async (albumid) => {
+    const findAlbum = albumsData.find((item) => albumid === item._id);
+    console.log("findAlbum.songs", findAlbum.songs);
+    if (!findAlbum || !findAlbum.songs || findAlbum.songs.length === 0) return;
+    let dataAlbum = {
+      name: findAlbum?.name,
+      artist: findAlbum?.artist,
+      image: findAlbum?.image,
+      id: findAlbum?._id,
+    };
+    setInfoPlayListNow(dataAlbum);
+    await playWithId(findAlbum?.songs[0]?._id);
+    setPlayListNow(findAlbum?.songs);
+  };
+
+  useEffect(() => {
+    if (playListNow.length > 0) {
+      localStorage.setItem("playlistNow", JSON.stringify(playListNow));
+    }
+  }, [playListNow]);
 
   const playWithId = async (id) => {
-    await songsData.map((item) => {
-      if (id === item._id) {
-        setTrack(item);
+    const selectedTrack = songsData.find((item) => id === item._id);
+    if (selectedTrack) {
+      setTrack(selectedTrack);
+      // setHistorySongList((prev) => {
+      //   return [...prev, historySong];
+      // });
+      // await addHistoryListen(selectedTrack);
+      await addSongToQueue(id);
+      // Lắng nghe sự kiện loadedmetadata trước khi play
+      audioRef.current.addEventListener(
+        "loadedmetadata",
+        () => {
+          audioRef.current
+            .play()
+            .then(() => {
+              setPlayStatus(true);
+            })
+            .catch((error) => {
+              console.error("Error playing the audio:", error);
+            });
+        },
+        { once: true }
+      );
+    }
+  };
+
+  const previous = async () => {
+    if (isRandom) {
+      // Nếu chế độ random đang bật, có thể chọn một bài hát ngẫu nhiên
+      const randomIndex = Math.floor(Math.random() * playListNow.length);
+      const previousTrack = playListNow[randomIndex];
+      setTrack(previousTrack);
+    } else {
+      const currentIndex = playListNow.findIndex(
+        (item) => track._id === item._id
+      );
+      if (currentIndex > 0) {
+        setTrack(playListNow[currentIndex - 1]);
       }
-    });
+    }
+
     await audioRef.current.play();
     setPlayStatus(true);
   };
 
-  const previous = async () => {
-    songsData.map(async (item, index) => {
-      if (track._id === item._id && index > 0) {
-        await setTrack(songsData[index - 1]);
-        await audioRef.current.play();
-        setPlayStatus(true);
-      }
-    });
-  };
-
   const next = async () => {
-    songsData.map(async (item, index) => {
-      if (track._id === item._id && index < songsData.length) {
-        await setTrack(songsData[index + 1]);
-        await audioRef.current.play();
-        setPlayStatus(true);
+    if (isRandom) {
+      const randomIndex = Math.floor(Math.random() * playListNow.length);
+      const nextTrack = playListNow[randomIndex];
+      setTrack(nextTrack);
+    } else {
+      const currentIndex = playListNow.findIndex(
+        (item) => track._id === item._id
+      );
+      if (currentIndex < playListNow.length - 1) {
+        const nextTrack = playListNow[currentIndex + 1];
+        setTrack(nextTrack);
+      } else if (isRepeat) {
+        setTrack(playListNow[0]);
+      } else {
+        setTrack(playListNow[0]);
+        setPlayStatus(false);
       }
-    });
+    }
+
+    audioRef.current.addEventListener(
+      "loadedmetadata",
+      () => {
+        audioRef.current.play().then(() => {
+          setPlayStatus(true);
+        });
+      },
+      { once: true }
+    );
   };
 
   const seekSong = async (e) => {
@@ -72,11 +319,23 @@ const PlayerContextProvider = (props) => {
 
   const getSongsData = async () => {
     try {
-      const response = await axios.get(`${url}/api/song/list`);
-      console.log(response);
-      if (response.data.success) {
-        setSongsData(response.data.songs);
-        setTrack(response.data.songs[0]);
+      const response = await axios.get(`${url}/api/song/songs`);
+      if (response.data.success && response.data.data.length > 0) {
+        let dataArr = response.data.data; // Tạo bản sao của mảng gốc
+
+        // Gọi hàm shuffleArray để trộn mảng bài hát (tạo bản sao để tránh bị ảnh hưởng bởi sortArray)
+        let shuffledData = structuredClone(dataArr);
+        shuffleArray(shuffledData).then((item) => {
+          setSongsDataWeekly(item);
+        });
+
+        // Sắp xếp theo ngày tạo (tạo bản sao để tránh bị ảnh hưởng bởi shuffleArray)
+        let sortedData = structuredClone(dataArr);
+        sortArray(sortedData, "createAt").then((item) => {
+          setSongsDataNew(item);
+        });
+
+        setSongsData(dataArr); // Thiết lập dữ liệu gốc
       }
     } catch (error) {
       toast.error("Error Occur");
@@ -85,60 +344,572 @@ const PlayerContextProvider = (props) => {
 
   const getAlbumsData = async () => {
     try {
-      const response = await axios.get(`${url}/api/album/list`);
+      const response = await axios.get(`${url}/api/album/albums`);
       if (response.data.success) {
-        setAlbumsData(response.data.albums);
+        setAlbumsData(response.data.data);
       }
     } catch (error) {
       toast.error("Error Occur");
     }
   };
 
-  useEffect(() => {
-    setTimeout(() => {
-      audioRef.current.ontimeupdate = () => {
-        seekBar.current.style.width =
-          Math.floor(
-            (audioRef.current.currentTime / audioRef.current.duration) * 100
-          ) + "%";
+  const getArtistsData = async () => {
+    try {
+      const response = await axios.get(`${url}/api/user/artist`);
+      if (response.data.success) {
+        setArtistsData(response.data.data);
+      }
+    } catch (error) {
+      toast.error("Error Occur");
+    }
+  };
 
-        setTime({
-          currentTime: {
-            second: Math.floor(audioRef.current.currentTime % 60),
-            minute: Math.floor(audioRef.current.currentTime / 60),
-          },
-          totalTime: {
-            second: Math.floor(audioRef.current.duration % 60),
-            minute: Math.floor(audioRef.current.duration / 60),
+  const getPlaylistData = async () => {
+    if (isLogin) {
+      try {
+        const response = await axios.get(`${url}/api/playlist/list`, {
+          headers: {
+            Authorization: `Bearer ${infoLogin.token}`,
+            "Content-Type": "application/json",
           },
         });
+        if (response.data.success) {
+          setPlaylistsData(response.data.data);
+        }
+      } catch (error) {
+        toast.error("Error Occur");
+      }
+    }
+  };
+
+  const getLibraryData = async () => {
+    if (isLogin) {
+      try {
+        const response = await axios.get(`${url}/api/library/`, {
+          headers: {
+            Authorization: `Bearer ${infoLogin.token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (response.data.success) {
+          setLibraryData(response.data.data);
+        }
+      } catch (error) {
+        toast.error("Error Occur");
+      }
+    }
+  };
+
+  const getPlaylistPublicData = async () => {
+    try {
+      const response = await axios.get(`${url}/api/playlist/all-public`);
+      if (response.data.success) {
+        setPlaylistsPublicData(response.data.data);
+      }
+    } catch (error) {
+      toast.error("Error Occur");
+    }
+  };
+
+  // ---------------------add, remove playlistNow--------------end
+
+  // -------------------add,edit ..........playlist.........start
+
+  const addInfoPlayList = async (datavalue) => {
+    if (!isLogin) {
+      toast.info("Please login first!");
+      return;
+    }
+    try {
+      const response = await axios.post(
+        `http://localhost:8000/api/playlist/add`,
+        datavalue,
+        {
+          headers: {
+            Authorization: `Bearer ${infoLogin.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data && response.data.success) {
+        toast.success(response.data.message);
+        navigate(`/playlist/${response.data.data._id}`, { replace: true });
+        closeAddPlaylist();
+        getPlaylistData();
+        getLibraryData();
+      }
+    } catch (error) {
+      if (error.response) {
+        // Nếu API trả về mã lỗi
+        if (error.response.status === 400) {
+          toast.error(
+            error.response.data.message || "Failed to add item to library."
+          );
+        } else {
+          toast.error("Error occurred while adding to library");
+        }
+      } else {
+        console.error("Error while adding to library:", error);
+        toast.error("Error occurred while adding to library");
+      }
+    }
+  };
+
+  const editInfoPlayList = async (datavalue) => {
+    if (!isLogin) {
+      toast.info("Please login first!");
+      return;
+    }
+    try {
+      const response = await axios.put(
+        `http://localhost:8000/api/playlist/${addPlaylist.id}`,
+        datavalue,
+        {
+          headers: {
+            Authorization: `Bearer ${infoLogin.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data && response.data.success) {
+        toast.success(response.data.message);
+        closeAddPlaylist();
+        getPlaylistData();
+      }
+    } catch (error) {
+      if (error.response) {
+        // Nếu API trả về mã lỗi
+        if (error.response.status === 400) {
+          toast.error(
+            error.response.data.message || "Failed to add item to library."
+          );
+        } else {
+          toast.error("Error occurred while adding to library");
+        }
+      } else {
+        console.error("Error while adding to library:", error);
+        toast.error("Error occurred while adding to library");
+      }
+    }
+  };
+  // -------------------add,edit ..........playlist.........end
+
+  // -----------------add,remove.....library--------------start
+  const addToLibrary = async ({ song, playlist, album, artist }) => {
+    if (!isLogin) {
+      toast.info("Please login first!");
+      return;
+    }
+    try {
+      const value = {
+        song: song || null,
+        playlist: playlist || null,
+        album: album || null,
+        artist: artist || null,
       };
-    }, 1000);
+
+      const response = await axios.put(`${url}/api/library/push`, value, {
+        headers: {
+          Authorization: `Bearer ${infoLogin.token}`, // Gửi token xác thực nếu cần
+        },
+      });
+
+      if (response.data.success) {
+        toast.success("Song added to library!");
+        getLibraryData();
+        //
+      } else {
+        toast.error(response.data.message || "Failed to add item to library.");
+      }
+    } catch (error) {
+      if (error.response) {
+        // Nếu API trả về mã lỗi
+        if (error.response.status === 400) {
+          toast.error(
+            error.response.data.message || "Failed to add item to library."
+          );
+        } else {
+          toast.error("Error occurred while adding to library");
+        }
+      } else {
+        console.error("Error while adding to library:", error);
+        toast.error("Error occurred while adding to library");
+      }
+    }
+  };
+
+  const removeFromLibrary = async (song, playlist, album, artist) => {
+    if (!isLogin) {
+      toast.info("Please login first!");
+      return;
+    }
+    try {
+      const value = {
+        song: song || null,
+        playlist: playlist || null,
+        album: album || null,
+        artist: artist || null,
+      };
+      let str = "";
+      if (song) {
+        str = "Are you sure you want to delete the song from your library?";
+      } else if (playlist) {
+        str = "Are you sure you want to delete the playlist from your library?";
+      } else if (album) {
+        str = "Are you sure you want to delete the album from your library?";
+      } else if (artist) {
+        str = "Are you sure you want to delete the artist from your library?";
+      }
+
+      if (window.confirm(str)) {
+        const response = await axios.put(`${url}/api/library/remove`, value, {
+          headers: {
+            Authorization: `Bearer ${infoLogin.token}`, // Gửi token xác thực nếu cần
+          },
+        });
+
+        if (response.data.success) {
+          toast.success("Item removed from library!");
+          getLibraryData();
+          getPlaylistData();
+          if (playlist) navigate("/playlist", { replace: true });
+          // getPlaylistData(); // Gọi lại API hoặc cập nhật UI nếu cần thiết
+        } else {
+          toast.error(
+            response.data.message || "Failed to remove item from library."
+          );
+        }
+      }
+    } catch (error) {
+      if (error.response) {
+        // Nếu API trả về mã lỗi
+        if (error.response.status === 400) {
+          toast.error(
+            error.response.data.message || "Failed to add item to library."
+          );
+        } else {
+          toast.error("Error occurred while adding to library");
+        }
+      } else {
+        console.error("Error while adding to library:", error);
+        toast.error("Error occurred while adding to library");
+      }
+    }
+  };
+  // -----------------add,remove.....library-------------end
+
+  // -----------------add,remove .........playlist-------start
+  const addSongToPlaylist = async ({ playlistId, songId }) => {
+    if (!isLogin) {
+      toast.info("Please login first!");
+      return;
+    }
+    try {
+      const value = {
+        playlistId: playlistId || null,
+        songId: songId || null,
+      };
+
+      const response = await axios.put(`${url}/api/playlist/push`, value, {
+        headers: {
+          Authorization: `Bearer ${infoLogin.token}`, // Gửi token xác thực nếu cần
+        },
+      });
+
+      if (response.data.success) {
+        toast.success("Song added to playlist!");
+        getPlaylistData();
+      } else {
+        toast.error(response.data.message || "Failed to add song to playlist.");
+      }
+    } catch (error) {
+      if (error.response) {
+        // Nếu API trả về mã lỗi
+        if (error.response.status === 400) {
+          toast.error(
+            error.response.data.message || "Failed to add item to library."
+          );
+        } else {
+          toast.error("Error occurred while adding to library");
+        }
+      } else {
+        console.error("Error while adding to library:", error);
+        toast.error("Error occurred while adding to library");
+      }
+    }
+  };
+
+  const removeSongFromPlaylist = async ({ playlistId, songId }) => {
+    if (!isLogin) {
+      toast.info("Please login first!");
+      return;
+    }
+    try {
+      const value = {
+        playlistId: playlistId || null,
+        songId: songId || null,
+      };
+
+      const response = await axios.put(`${url}/api/playlist/remove`, value, {
+        headers: {
+          Authorization: `Bearer ${infoLogin.token}`, // Gửi token xác thực nếu cần
+        },
+      });
+
+      if (response.data.success) {
+        toast.success("Song removed from playlist!");
+        getPlaylistData();
+      } else {
+        toast.error(
+          response.data.message || "Failed to remove song from playlist."
+        );
+      }
+    } catch (error) {
+      if (error.response) {
+        // Nếu API trả về mã lỗi
+        if (error.response.status === 400) {
+          toast.error(
+            error.response.data.message || "Failed to add item to library."
+          );
+        } else {
+          toast.error("Error occurred while adding to library");
+        }
+      } else {
+        console.error("Error while adding to library:", error);
+        toast.error("Error occurred while adding to library");
+      }
+    }
+  };
+
+  const updateImagePlaylist = async (playlistId, image) => {
+    if (!isLogin) {
+      toast.info("Please login first!");
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.append("image", image);
+      const response = await axios.put(
+        `${url}/api/playlist/${playlistId}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${infoLogin.token}`, // Gửi token xác thực nếu cần
+          },
+        }
+      );
+
+      if (response.data.success) {
+        toast.success("Photo update successful");
+        getPlaylistData();
+      } else {
+        toast.error(
+          response.data.message || "Failed to photo update to playlist."
+        );
+      }
+    } catch (error) {
+      if (error.response) {
+        // Nếu API trả về mã lỗi
+        if (error.response.status === 400) {
+          toast.error(
+            error.response.data.message || "Failed to photo update to library."
+          );
+        } else {
+          toast.error("Error occurred while photo update library");
+        }
+      } else {
+        console.error("Error while adding to library:", error);
+        toast.error("Error occurred while adding to library");
+      }
+    }
+  };
+  // -------------------------------add.remove Playlist--------end
+
+  const logout = () => {
+    localStorage.clear();
+    setIsLogin(false);
+    setInfoLogin({
+      name: "",
+      id: "",
+    });
+  };
+  // login-start-------------------------------------------------------------LOGIN
+  const verifyToken = (keyName) => {
+    const storage = localStorage.getItem(keyName);
+    if (storage) {
+      const decodeToken = jwtDecode(storage);
+      const expiresIn = new Date(decodeToken.exp * 1000);
+      if (new Date() > expiresIn) {
+        localStorage.removeItem(keyName);
+        return null;
+      } else {
+        return decodeToken;
+      }
+    } else {
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const info = verifyToken("token");
+    const token = localStorage.getItem("token");
+
+    if (info) {
+      setInfoLogin({ name: info.name, id: info._id, token: token });
+      setIsLogin(true);
+    } else {
+      setIsLogin(false);
+    }
+  }, [isLogin]);
+  //login-end------------------------------------------------------------------LOGINN
+
+  useEffect(() => {
+    const audioElement = audioRef.current;
+
+    // Kiểm tra xem phần tử âm thanh có sẵn không
+    if (audioElement) {
+      const updateTime = () => {
+        // Kiểm tra nếu duration tồn tại và hợp lệ
+        if (audioElement.duration && !isNaN(audioElement.duration)) {
+          seekBar.current.style.width =
+            Math.floor(
+              (audioElement.currentTime / audioElement.duration) * 100
+            ) + "%";
+
+          setTime({
+            currentTime: {
+              second: Math.floor(audioElement.currentTime % 60),
+              minute: Math.floor(audioElement.currentTime / 60),
+            },
+            totalTime: {
+              second: Math.floor(audioElement.duration % 60),
+              minute: Math.floor(audioElement.duration / 60),
+            },
+          });
+        }
+      };
+
+      audioElement.ontimeupdate = updateTime; // Thiết lập hàm xử lý ontimeupdate
+
+      // Dọn dẹp hàm xử lý khi component unmount
+      return () => {
+        audioElement.ontimeupdate = null; // Đặt ontimeupdate về null khi unmount
+      };
+    }
   }, [audioRef]);
 
   useEffect(() => {
-    getSongsData();
-    getAlbumsData();
+    // Lắng nghe sự kiện khi bài hát kết thúc
+    audioRef.current.onended = () => {
+      setTime({
+        currentTime: {
+          second: 0,
+          minute: 0,
+        },
+        totalTime: {
+          second: Math.floor(audioRef.current.duration % 60) || 0,
+          minute: Math.floor(audioRef.current.duration / 60) || 0,
+        },
+      });
+
+      // Đặt lại thanh seekBar về 0
+      seekBar.current.style.width = "0%";
+      setPlayStatus(false);
+
+      if (isRepeat) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+      } else {
+        next();
+      }
+    };
+  }, [isRepeat, track, isRandom]);
+
+  //load 1 lần sau khi reload trang
+  useEffect(() => {
+    let dataPlaylistNow = [];
+    try {
+      const storedData = JSON.parse(localStorage.getItem("playlistNow"));
+      if (Array.isArray(storedData)) {
+        dataPlaylistNow = storedData;
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy dữ liệu từ localStorage:", error);
+    }
+    setPlayListNow(dataPlaylistNow);
   }, []);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      await getSongsData();
+      await getAlbumsData();
+      await getArtistsData();
+      await getPlaylistPublicData();
+
+      if (infoLogin.id) {
+        await getLibraryData();
+        await getPlaylistData();
+      }
+    };
+
+    fetchData();
+  }, [isLogin, infoLogin]);
+
   const contextValue = {
-    audioRef,
-    seekBg,
-    seekBar,
-    track,
-    setTrack,
-    playStatus,
-    setPlayStatus,
-    time,
-    setTime,
-    play,
-    pause,
-    playWithId,
-    previous,
-    next,
-    seekSong,
-    songsData,
+    addAlbumToQueue,
+    addInfoPlayList,
+    addPlaylist,
+    addSongToPlaylist,
+    addSongToQueue,
+    addToLibrary,
     albumsData,
+    artistsData,
+    audioRef,
+    checkSongPlay,
+    closeAddPlaylist,
+    editInfoPlayList,
+    infoLogin,
+    infoPlayListNow,
+    isLogin,
+    isRepeat,
+    isShowListPlay,
+    isRandom,
+    libraryData,
+    logout,
+    next,
+    openAddPlaylist,
+    pause,
+    play,
+    playListNow,
+    playStatus,
+    playWithId,
+    playlistsData,
+    playlistsPublicData,
+    previous,
+    removeFromLibrary,
+    removeSongFromPlaylist,
+    removeSongFromQueue,
+    seekBar,
+    seekBg,
+    seekSong,
+    setAddPlaylist,
+    setIsLogin,
+    setIsRepeat,
+    setIsShowListPlay,
+    setPlayStatus,
+    setTime,
+    setTrack,
+    setIsRandom,
+    songsData,
+    songsDataNew,
+    songsDataWeekly,
+    time,
+    track,
+    updateImagePlaylist,
+    volumeBar,
+    volumeBg,
   };
 
   return (

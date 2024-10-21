@@ -25,6 +25,23 @@ import clock_icon from './clock_icon.png'
 import discover_icon from './discover.png'
 import artist_icon from './artist.png'
 import albums_icon from './albums.png'
+import notnhac_icon from "./Vector.png"
+import album_show_icon from "./vactor_album.png"
+//
+import addPlaylist_icon from './add-playlist.png'
+import listSong_icon from './list_song.png'
+import logOut_icon from './log-out_1.png'
+import oclockXoay_icon from './oclock-xoay.png'
+import oclock_icon from './oclock.png'
+import ph_playlist_icon from './ph_playlist.png'
+import setting_icon from './setting_1.png'
+import logo from './logo.png'
+import album_default from './album_default.png'
+import pop from './pop.jfif'
+import rap from './rap.jfif'
+import rock from './rock.jfif'
+import classic from './classic.jfif'
+
 
 import img1 from './img1.jpg'
 import img2 from './img2.jpg'
@@ -74,6 +91,22 @@ export const assets = {
     discover_icon,
     artist_icon,
     albums_icon,
+    addPlaylist_icon,
+    listSong_icon,
+    logOut_icon,
+    oclockXoay_icon,
+    oclock_icon,
+    ph_playlist_icon,
+    setting_icon,
+    notnhac_icon,
+    album_show_icon,
+    logo,
+    album_default,
+    pop,
+    rock,
+    classic,
+    rap
+
 }
 
 export const albumsData = [
