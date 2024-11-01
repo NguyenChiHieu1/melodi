@@ -8,12 +8,12 @@ const Sidebar = () => {
   const location = useLocation(); // Lấy thông tin vị trí hiện tại của URL
 
   // Kiểm tra xem "playlist" có trong đường dẫn URL không
-  const hasPlaylist = location.pathname.includes("playlist");
-  const hasAlbums = location.pathname.includes("albums");
-  const hasArtist = location.pathname.includes("artists");
-  const hasDiscover = location.pathname.includes("discover");
+  let hasPlaylist = location.pathname.includes("your-playlist");
+  let hasAlbums = location.pathname.includes("albums");
+  let hasArtist = location.pathname.includes("artists");
+  let hasDiscover = location.pathname.includes("discover");
+  let hasFavorite = location.pathname.includes("favorite");
 
-  const [selected, setSelected] = useState("");
   const { openAddPlaylist, logout, isLogin } = useContext(PlayerContext);
 
   return (
@@ -32,16 +32,11 @@ const Sidebar = () => {
           </div>{" "}
           <div
             onClick={() => {
-              setSelected("Home");
-              navigate("/", { replace: true });
+              navigate("/#1", { replace: true });
             }}
             className={`flex text-xl items-center gap-3 pl-8 cursor-pointer rounded-lg text-gray-400
                     border-2 ${
-                      selected === "Home" &&
-                      !hasAlbums &&
-                      !hasArtist &&
-                      !hasDiscover &&
-                      !hasPlaylist
+                      !hasAlbums && !hasArtist && !hasDiscover && !hasPlaylist
                         ? "border-[#FF00E5] shadow-[0px_0px_10px_5px_#FF00E5]"
                         : "border-transparent"
                     } 
@@ -52,12 +47,11 @@ const Sidebar = () => {
           </div>
           <div
             onClick={() => {
-              setSelected("Discover");
-              navigate("/discover");
+              navigate("/discover/#2");
             }}
             className={`flex text-xl items-center gap-3 pl-8 cursor-pointer rounded-lg text-gray-400 
                     border-2 ${
-                      selected === "Discover" || hasDiscover
+                      hasDiscover
                         ? "border-[#FF00E5] shadow-[0px_0px_10px_5px_#FF00E5]"
                         : "border-transparent"
                     } 
@@ -68,12 +62,11 @@ const Sidebar = () => {
           </div>
           <div
             onClick={() => {
-              setSelected("Albums");
-              navigate("/albums");
+              navigate("/albums/#3");
             }}
             className={`flex text-xl items-center gap-3 pl-8 cursor-pointer rounded-lg text-gray-400 
                     border-2 ${
-                      selected === "Albums" || hasAlbums
+                      hasAlbums
                         ? "border-[#FF00E5] shadow-[0px_0px_10px_5px_#FF00E5]"
                         : "border-transparent"
                     } 
@@ -84,12 +77,11 @@ const Sidebar = () => {
           </div>
           <div
             onClick={() => {
-              setSelected("Artists");
-              navigate("/artists", { replace: true });
+              navigate("/artists/#4", { replace: true });
             }}
             className={`flex text-xl items-center gap-3 pl-8 cursor-pointer rounded-lg text-gray-400 
                     border-2 ${
-                      selected === "Artists" || hasArtist
+                      hasArtist
                         ? "border-[#FF00E5] shadow-[0px_0px_10px_5px_#FF00E5]"
                         : "border-transparent"
                     } 
@@ -100,7 +92,7 @@ const Sidebar = () => {
           </div>
         </div>
         {/* Library */}
-        <div className="flex flex-col gap-2">
+        {/* <div className="flex flex-col gap-2">
           <div>
             <h3 className="pl-8 text-base text-[#EE10B0] ">Library</h3>
           </div>{" "}
@@ -133,7 +125,7 @@ const Sidebar = () => {
             <img className="w-6" src={assets.oclockXoay_icon} alt="" />
             <p className="font-semibold text-white">Most played</p>
           </div>
-        </div>
+        </div> */}
         {/* Playlist and favorite */}
         <div className="flex flex-col gap-2">
           <div>
@@ -142,10 +134,12 @@ const Sidebar = () => {
             </h3>
           </div>{" "}
           <div
-            onClick={() => setSelected("Yourfavorites")}
+            onClick={() => {
+              navigate("/your-playlist/favorite/#5", { replace: true });
+            }}
             className={`flex text-xl items-center gap-3 pl-8 cursor-pointer rounded-lg text-gray-400
                     border-2 ${
-                      selected === "Yourfavorites"
+                      hasFavorite
                         ? "border-[#FF00E5] shadow-[0px_0px_10px_5px_#FF00E5]"
                         : "border-transparent"
                     } 
@@ -156,12 +150,11 @@ const Sidebar = () => {
           </div>
           <div
             onClick={() => {
-              setSelected("Yourplaylist");
-              navigate("/playlist");
+              navigate("/your-playlist/#6");
             }}
             className={`flex text-xl items-center gap-3 pl-8 cursor-pointer rounded-lg text-gray-400 
                     border-2 ${
-                      selected === "Yourplaylist" || hasPlaylist
+                      hasPlaylist && !hasFavorite
                         ? "border-[#FF00E5] shadow-[0px_0px_10px_5px_#FF00E5]"
                         : "border-transparent"
                     } 
@@ -172,7 +165,6 @@ const Sidebar = () => {
           </div>
           <div
             onClick={() => {
-              setSelected("Addplaylist");
               openAddPlaylist(null, null, null);
             }}
             className={`flex text-xl items-center gap-3 pl-8 cursor-pointer rounded-lg text-gray-400 
@@ -191,7 +183,7 @@ const Sidebar = () => {
             <div>
               <h3 className="pl-8 text-base text-[#EE10B0] ">General</h3>
             </div>{" "}
-            <div
+            {/* <div
               onClick={() => setSelected("Setting")}
               className={`flex text-xl items-center gap-3 pl-8 cursor-pointer rounded-lg text-gray-400 
                     border-2 ${
@@ -203,19 +195,15 @@ const Sidebar = () => {
             >
               <img className="w-6" src={assets.setting_icon} alt="" />
               <p className="font-semibold text-white">Setting</p>
-            </div>
+            </div> */}
             <div
               onClick={() => {
-                setSelected("Logout");
                 logout();
               }}
-              className={`flex text-xl items-center gap-3 pl-8 cursor-pointer rounded-lg text-gray-400 
-                    border-2 ${
-                      selected === "Logout"
-                        ? "border-[#FF00E5] shadow-[0px_0px_10px_5px_#FF00E5]"
-                        : "border-transparent"
-                    } 
-                    hover:border-[#FF00E5] hover:shadow-[0px_0px_10px_5px_#FF00E5]`}
+              className="flex text-xl items-center gap-3 pl-8 cursor-pointer rounded-lg text-gray-400 
+                    border-2 border-transparent
+                  
+                    hover:border-[#FF00E5] hover:shadow-[0px_0px_10px_5px_#FF00E5]"
             >
               <img className="w-6" src={assets.logOut_icon} alt="" />
               <p className="font-semibold text-[#EE10B0]">Logout</p>

@@ -1,28 +1,42 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import AlbumItem from "../components/AlbumItem";
 import { PlayerContext } from "../context/PlayerContext";
 import ArtistItem from "../components/ArtistItem";
 import SongItem from "../components/SongItem";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import TrendAlbumTable from "../components/TrendAlbumTable";
 
 const DisplayPageAlbum = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { albumsData, songsDataNew, artistsData, playlistsPublicData } =
     useContext(PlayerContext);
+  const [topIndex, setTopIndex] = useState(10);
+
+  useEffect(() => {
+    // Kiểm tra nếu URL chứa "#vitri"
+    if (location.hash === "#3") {
+      const vitriElement = document.getElementById("3");
+      if (vitriElement) {
+        vitriElement.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [location]);
+
   return (
     <div>
       <Navbar />
-
+      <div id="3"></div>
       {/* Albums */}
-      <div className="my-10 m-8">
+      <div className="my-10">
         <div>
-          <h1 className="my-5 font-bold text-2xl capitalize">
+          <h1 className="my-5 font-bold text-3xl capitalize">
             Collection of <span className="text-[#0E9EEF]"> best Albums</span>
           </h1>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 ">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 ">
           {albumsData.map((item, index) => (
             <AlbumItem
               key={index}
@@ -36,7 +50,7 @@ const DisplayPageAlbum = () => {
       </div>
 
       {/* List Artist */}
-      <div className="my-10 ml-5">
+      {/* <div className="my-10 ">
         <h1 className="my-5 font-bold text-3xl capitalize">
           Popular <span className="text-[#0E9EEF]">Artists</span>
         </h1>
@@ -58,10 +72,22 @@ const DisplayPageAlbum = () => {
             </p>
           </div>
         </div>
+      </div> */}
+
+      {/* Trendinge Songs */}
+      <div className="my-10 ">
+        <h1 className="mx-5 font-bold text-3xl capitalize">
+          Favorite
+          <span className="text-[#0E9EEF]"> albums charts </span>
+        </h1>
+        <TrendAlbumTable
+          top={topIndex}
+          setTop={() => setTopIndex((prev) => prev + 10)}
+        />
       </div>
 
       {/* Favorite Playlist */}
-      <div className="my-10 ml-5">
+      <div className="my-10 ">
         <h1 className="my-5 font-bold text-3xl capitalize">
           Favorite <span className="text-[#EE10B0]">Playlist</span>
         </h1>
@@ -71,6 +97,7 @@ const DisplayPageAlbum = () => {
               <div
                 className="rounded-lg w-[280px] h-full  cursor-pointer flex flex-col items-center justify-center bg-black bg-opacity-50 hover:bg-opacity-30"
                 key={item._id}
+                onClick={() => navigate(`/playlist/${item._id}`)}
               >
                 <img
                   src={item.image || assets.album_default}
@@ -88,7 +115,7 @@ const DisplayPageAlbum = () => {
             ))}
             <div
               className="flex justify-center flex-col text-white ml-4 hover:text-[#EE10B0]"
-              onClick={() => navigate("/playlist")}
+              onClick={() => navigate("/your-playlist/favorite/#5")}
             >
               <span className="w-16 h-16 bg-[#1E1E1E] rounded-full flex items-center justify-center cursor-pointer text-white text-3xl hover:bg-[#EE10B0]">
                 +
@@ -102,9 +129,9 @@ const DisplayPageAlbum = () => {
       </div>
 
       {/* New Release sóng */}
-      <div className="my-10 ml-5">
+      <div className="my-10 ">
         <h1 className="my-5 font-bold text-3xl capitalize">
-          New Release <span className="text-[#EE10B0]">Songs</span>
+          Songs you <span className="text-[#EE10B0]">might like</span>
         </h1>
         <div className="flex overflow-auto gap-4">
           <div className="flex overflow-auto gap-4">

@@ -6,20 +6,32 @@ import DisplayAlbum from "./DisplayAlbum";
 import { useContext } from "react";
 import { PlayerContext } from "../context/PlayerContext";
 import Footer from "../components/Footer";
-import DisplayPlaylist from "./DisplayPlaylist";
-import DisplayPlaylistId from "./DisplayPlaylistId";
+import DisplayYourPlaylist from "./DisplayYourPlaylist";
+import DisplayYourPlaylistId from "./DisplayYourPlaylistId";
 import DisplayDiscover from "./DisplayDiscover";
 import DisplayPageAlbum from "./DisplayPageAlbum";
 import DisplayArtist from "./DisplayArtist";
+import DisplayArtistId from "./DisplayArtistId";
+import DisplayPlaylistFavorite from "./DisplayYourPlaylistFavorite";
+import DisplayAbout from "./DisplayAbout";
+import DisplayContact from "./DisplayContact";
+import DisplayPremium from "./DisplayPremium";
 
 const Display = () => {
-  const { albumsData } = useContext(PlayerContext);
+  const { albumsData, playlistsData } = useContext(PlayerContext);
 
   const displayRef = useRef();
   const location = useLocation();
   const isAlbum = location.pathname.includes("album");
+  const isPlaylist = location.pathname.includes("playlist");
+  const isPlaylistYour = location.pathname.includes("your-playlist");
   // const albumId = isAlbum ? location.pathname.slice(-1) : "";
   const albumId = isAlbum ? location.pathname.split("/").pop() : "";
+  const playlistId = isPlaylist ? location.pathname.split("/").pop() : "";
+
+  const playlistYourId = isPlaylistYour
+    ? location.pathname.split("/").pop()
+    : "";
   // const bgColor = albumsData[Number(albumId)].bgColor;
   const bgColor =
     isAlbum && albumsData.length > 0
@@ -29,7 +41,7 @@ const Display = () => {
 
   useEffect(() => {
     if (isAlbum) {
-      displayRef.current.style.background = `linear-gradient(${bgColor}, #121212)`;
+      displayRef.current.style.background = `linear-gradient(${bgColor}, #3f3737)`;
     } else {
       displayRef.current.style.background = `#412C3A`;
     }
@@ -40,21 +52,39 @@ const Display = () => {
         {albumsData.length > 0 ? (
           <Routes>
             <Route path="/" element={<DisplayHome />} />
+            <Route path="/album/:id" element={<DisplayAlbum />} />
+            <Route path="/your-playlist">
+              <Route index element={<DisplayYourPlaylist />} />
+              <Route path="favorite" element={<DisplayPlaylistFavorite />} />
+              <Route
+                path=":id"
+                element={
+                  <DisplayYourPlaylistId
+                    data={playlistsData.find((x) => x._id === playlistYourId)}
+                    show={true}
+                  />
+                }
+              />
+            </Route>
             <Route
-              path="/album/:id"
+              path="/playlist/:id"
               element={
-                <DisplayAlbum
-                  album={albumsData.find((x) => x._id === albumId)}
+                <DisplayYourPlaylistId
+                  data={playlistsData.find((x) => x._id === playlistId)}
+                  show={false}
                 />
               }
             />
-            <Route path="/playlist">
-              <Route index element={<DisplayPlaylist />} />
-              <Route path=":id" element={<DisplayPlaylistId />} />
-            </Route>
+
             <Route path="/discover" element={<DisplayDiscover />} />
             <Route path="/albums" element={<DisplayPageAlbum />} />
-            <Route path="/artists" element={<DisplayArtist />} />
+            <Route path="/artists">
+              <Route index element={<DisplayArtist />} />
+              <Route path=":id" element={<DisplayArtistId />} />
+            </Route>
+            <Route path="/about" element={<DisplayAbout />} />
+            <Route path="/contact" element={<DisplayContact />} />
+            <Route path="/premium" element={<DisplayPremium />} />
           </Routes>
         ) : null}
       </div>

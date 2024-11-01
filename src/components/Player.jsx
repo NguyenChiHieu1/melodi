@@ -119,7 +119,8 @@ const Player = () => {
 
         <div className="flex items-center gap-5">
           <p>
-            {time.currentTime.minute}:{time.currentTime.second}
+            {String(time.currentTime.minute).padStart(2, "0")}:
+            {String(time.currentTime.second).padStart(2, "0")}
           </p>
           <div
             ref={seekBg}
@@ -132,7 +133,8 @@ const Player = () => {
             />
           </div>
           <p>
-            {time.totalTime.minute}:{time.totalTime.second}
+            {String(time.totalTime.minute).padStart(2, "0")}:
+            {String(time.totalTime.second).padStart(2, "0")}
           </p>
         </div>
       </div>

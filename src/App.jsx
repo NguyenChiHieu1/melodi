@@ -19,8 +19,11 @@ import Public from "./router/Public";
 import Loading from "./pages/loading/Loading";
 import SignUp from "./pages/signup/SignUp";
 import PlayListNow from "./components/PlayListNow";
+import DisplayInfo from "./pages/DisplayInfo";
+
 function App() {
-  const { audioRef, track, songsData, addPlaylist } = useContext(PlayerContext);
+  const { audioRef, track, songsData, addPlaylist, pageInfo } =
+    useContext(PlayerContext);
 
   useEffect(() => {
     console.log("addPlaylist", addPlaylist);
@@ -45,6 +48,11 @@ function App() {
                     {addPlaylist.on && (
                       <Private>
                         <AddPlaylist />
+                      </Private>
+                    )}
+                    {pageInfo && (
+                      <Private>
+                        <DisplayInfo />
                       </Private>
                     )}
                   </>

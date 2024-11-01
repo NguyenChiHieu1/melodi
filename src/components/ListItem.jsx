@@ -10,7 +10,7 @@ const ListItem = ({ image, namePlaylist, nameAuthor, id }) => {
       {/* Khung ảnh với overflow-hidden để giữ kích thước khung cố định */}
       <div
         className="w-full h-[90%] overflow-hidden rounded-md"
-        onClick={() => navigate(`/playlist/${id}`, { replace: true })}
+        onClick={() => navigate(`/your-playlist/${id}`, { replace: true })}
       >
         <img
           src={image || assets.album_default}
@@ -24,7 +24,7 @@ const ListItem = ({ image, namePlaylist, nameAuthor, id }) => {
       <p className="text-left text-lg font-medium h-[10%] w-full">
         {namePlaylist}
       </p>
-      <p className="text-left text-lg font-medium h-[10%] w-full">
+      <p className="text-left text-base font-medium h-[10%] w-full">
         {nameAuthor}
       </p>
     </div>

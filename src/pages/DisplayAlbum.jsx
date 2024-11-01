@@ -4,10 +4,12 @@ import { useParams } from "react-router-dom";
 import { assets } from "../assets/assets";
 import { PlayerContext } from "../context/PlayerContext";
 import { formatHour } from "../utils/formatHour";
+import AnimationMusic from "../components/AnimationMusic";
 
 const DisplayAlbum = () => {
   const { id } = useParams();
-  const { playWithId, albumsData } = useContext(PlayerContext);
+  const { playWithId, albumsData, addAlbumToQueue, playStatus, track } =
+    useContext(PlayerContext);
   const [albumData, setAlbumData] = useState(null);
 
   useEffect(() => {
@@ -21,7 +23,7 @@ const DisplayAlbum = () => {
 
       <div className="p-6">
         {/* Album Info */}
-        <div className="mt-10 flex gap-8 flex-col md:flex-row md:items-end">
+        <div className="mt-10 flex gap-8 flex-col md:flex-row md:items-end relative">
           {/* <div> */}
           <img
             className="w-60 rounded-lg shadow-custom"
@@ -58,12 +60,19 @@ const DisplayAlbum = () => {
               <b> {formatHour(albumData.songs)}</b>
             </p>
           </div>
+          <div className="absolute right-20">
+            <i
+              className="bi bi-play-circle text-6xl mt-1 text-white  cursor-pointer hover:text-[#dd5285]"
+              title="Play"
+              onClick={() => addAlbumToQueue(id)}
+            ></i>
+          </div>
         </div>
 
         {/* Song List Header */}
-        <div className="grid grid-cols-[4fr_5fr_2fr_1fr] mt-10 px-4 text-gray-200">
+        <div className="ml-2 grid grid-cols-[4fr_5fr_2fr_1fr] mt-10 px-4 text-gray-200">
           <p className="text-lg">
-            <b className="mr-4">#</b>Title
+            <b className=""></b>Title
           </p>
           <p className="text-lg">Album</p>
           <p className="hidden sm:block text-lg">Release Date</p>
@@ -76,17 +85,23 @@ const DisplayAlbum = () => {
           <div
             onClick={() => playWithId(item._id)}
             key={index}
-            className="grid grid-cols-[4fr_5fr_2fr_1fr] gap-5 p-3 items-center text-gray-200 hover:bg-gray-600/20 cursor-pointer transition-all duration-200"
+            className="ml-2 grid grid-cols-[4fr_5fr_2fr_1fr] gap-5 p-3 items-center text-gray-200 hover:bg-gray-600/50 cursor-pointer transition-all duration-200"
           >
-            <p className="text-white font-medium">
-              <b className="mr-4 text-gray-300">{index + 1}</b>
+            <div className="text-white font-medium relative">
+              <div className="absolute -left-7 top-3">
+                {playStatus && track._id === item?._id ? (
+                  <AnimationMusic />
+                ) : (
+                  <b className=" text-gray-300"># {index + 1}</b>
+                )}
+              </div>
               <img
                 className="inline w-12 h-12 mr-4 rounded-md"
                 src={item.image}
                 alt={item.title}
               />
               {item.title}
-            </p>
+            </div>
             <p className="text-sm">{albumData.name}</p>
             <p className="text-sm hidden sm:block">
               {new Date(albumData.createdAt).toDateString()}

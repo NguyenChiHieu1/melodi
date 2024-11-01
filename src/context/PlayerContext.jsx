@@ -30,8 +30,10 @@ const PlayerContextProvider = (props) => {
   const [albumsData, setAlbumsData] = useState([]);
   const [artistsData, setArtistsData] = useState([]);
   const [playlistsData, setPlaylistsData] = useState([]);
+  const [playlistsYourData, setPlaylistsYourData] = useState([]);
   const [playlistsPublicData, setPlaylistsPublicData] = useState([]);
   const [libraryData, setLibraryData] = useState({});
+  const [pageInfo, setPageInfo] = useState(false);
   // const [playlistId, setPlayListId] = useState({});
 
   //Dung để check login
@@ -41,6 +43,7 @@ const PlayerContextProvider = (props) => {
     id: "",
     token: "",
   });
+  const [infoUser, setInfoUser] = useState({});
   // Dùng đẻ check bài hát nào đang play
   const [checkSongPlay, setCheckSongPlay] = useState({
     isPlaying: false,
@@ -53,13 +56,17 @@ const PlayerContextProvider = (props) => {
   const [isShowListPlay, setIsShowListPlay] = useState(false);
   //Bài hát đang hát
   const [track, setTrack] = useState(songsData[0]);
+  //ktra la song/album/playlist
+  const [type, setType] = useState({
+    type: "",
+    id: "",
+  });
+
   //Danh sách phát
   const [playListNow, setPlayListNow] = useState([]);
   const [infoPlayListNow, setInfoPlayListNow] = useState({
     name: "",
-    image: "",
-    id: "",
-    artist: "",
+    status: "",
   });
   //Trạng thái bài hát: chạy/dừng/next/...
   const [playStatus, setPlayStatus] = useState(false);
@@ -199,33 +206,50 @@ const PlayerContextProvider = (props) => {
   // ---------------
 
   const removeSongFromQueue = async (songId) => {
-    setPlayListNow((prev) => prev.filter((item) => item._id !== songId));
+    setPlayListNow((prev) => {
+      const updatedList = prev.filter((item) => item._id !== songId);
+      return updatedList;
+    });
   };
 
   const addSongToQueue = async (id) => {
-    const findSong = songsData.find((item) => id === item._id);
+    const findSong = await songsData.find((item) => id === item._id);
     if (!findSong) return; // Nếu không tìm thấy bài hát, thoát hàm
 
-    // Kiểm tra xem bài hát đã tồn tại trong danh sách hàng đợi chưa
-    const trackExists = playListNow.some((item) => item._id === findSong._id);
-    if (!trackExists) {
-      setPlayListNow((prev) => [findSong, ...prev]); // Chỉ thêm nếu bài hát chưa tồn tại
-    }
+    // Lọc ra danh sách bài hát để loại bỏ bài hát đã tồn tại
+    const updatedPlayList = playListNow.filter(
+      (item) => item._id !== findSong._id
+    );
+
+    // Thêm bài hát mới vào danh sách
+    setPlayListNow((prev) => [findSong, ...updatedPlayList]);
   };
 
   const addAlbumToQueue = async (albumid) => {
     const findAlbum = albumsData.find((item) => albumid === item._id);
-    console.log("findAlbum.songs", findAlbum.songs);
+    // console.log("findAlbum.songs", findAlbum.songs);
     if (!findAlbum || !findAlbum.songs || findAlbum.songs.length === 0) return;
-    let dataAlbum = {
+    let data = {
       name: findAlbum?.name,
-      artist: findAlbum?.artist,
-      image: findAlbum?.image,
-      id: findAlbum?._id,
+      status: "album",
     };
-    setInfoPlayListNow(dataAlbum);
+    setInfoPlayListNow(data);
     await playWithId(findAlbum?.songs[0]?._id);
     setPlayListNow(findAlbum?.songs);
+  };
+
+  const addPlaylistToQueue = async (playlistId) => {
+    const findPlaylist = playlistsData.find((item) => playlistId === item._id);
+    console.log("findPlaylist?.songs", findPlaylist?.songs);
+    if (!findPlaylist || !findPlaylist.songs || findPlaylist.songs.length === 0)
+      return;
+    let data = {
+      name: findPlaylist?.name,
+      status: "playlist",
+    };
+    setInfoPlayListNow(data);
+    await playWithId(findPlaylist?.songs[0]?._id);
+    setPlayListNow(findPlaylist?.songs);
   };
 
   useEffect(() => {
@@ -238,27 +262,28 @@ const PlayerContextProvider = (props) => {
     const selectedTrack = songsData.find((item) => id === item._id);
     if (selectedTrack) {
       setTrack(selectedTrack);
-      // setHistorySongList((prev) => {
-      //   return [...prev, historySong];
-      // });
-      // await addHistoryListen(selectedTrack);
       await addSongToQueue(id);
-      // Lắng nghe sự kiện loadedmetadata trước khi play
-      audioRef.current.addEventListener(
-        "loadedmetadata",
-        () => {
-          audioRef.current
-            .play()
-            .then(() => {
-              setPlayStatus(true);
-            })
-            .catch((error) => {
-              console.error("Error playing the audio:", error);
-            });
-        },
-        { once: true }
-      );
+      addSongsView(id);
+      if (audioRef.current) {
+        // Xóa event listener trước khi thêm mới
+        audioRef.current.removeEventListener("loadedmetadata", handlePlayAudio);
+        audioRef.current.addEventListener("loadedmetadata", handlePlayAudio, {
+          once: true,
+        });
+      }
     }
+  };
+
+  // Hàm xử lý play audio
+  const handlePlayAudio = () => {
+    audioRef.current
+      .play()
+      .then(() => {
+        setPlayStatus(true);
+      })
+      .catch((error) => {
+        console.error("Error playing the audio:", error);
+      });
   };
 
   const previous = async () => {
@@ -273,6 +298,8 @@ const PlayerContextProvider = (props) => {
       );
       if (currentIndex > 0) {
         setTrack(playListNow[currentIndex - 1]);
+      } else {
+        setTrack(playListNow[playListNow.length - 1]);
       }
     }
 
@@ -281,34 +308,34 @@ const PlayerContextProvider = (props) => {
   };
 
   const next = async () => {
+    if (!audioRef.current) return;
+
     if (isRandom) {
-      const randomIndex = Math.floor(Math.random() * playListNow.length);
-      const nextTrack = playListNow[randomIndex];
+      let randomIndex;
+      let nextTrack;
+      do {
+        randomIndex = Math.floor(Math.random() * playListNow.length);
+        nextTrack = playListNow[randomIndex];
+      } while (nextTrack._id === track._id); // Đảm bảo không chọn bài hiện tại
+
       setTrack(nextTrack);
     } else {
       const currentIndex = playListNow.findIndex(
         (item) => track._id === item._id
       );
-      if (currentIndex < playListNow.length - 1) {
-        const nextTrack = playListNow[currentIndex + 1];
-        setTrack(nextTrack);
-      } else if (isRepeat) {
-        setTrack(playListNow[0]);
-      } else {
-        setTrack(playListNow[0]);
-        setPlayStatus(false);
-      }
+      const nextTrack =
+        currentIndex < playListNow.length - 1
+          ? playListNow[currentIndex + 1]
+          : playListNow[0];
+      setTrack(nextTrack);
     }
 
-    audioRef.current.addEventListener(
-      "loadedmetadata",
-      () => {
-        audioRef.current.play().then(() => {
-          setPlayStatus(true);
-        });
-      },
-      { once: true }
-    );
+    try {
+      await audioRef.current.play();
+      setPlayStatus(true);
+    } catch (error) {
+      console.error("Error playing the audio:", error);
+    }
   };
 
   const seekSong = async (e) => {
@@ -342,6 +369,28 @@ const PlayerContextProvider = (props) => {
     }
   };
 
+  const addSongsView = async (sid) => {
+    try {
+      const response = await axios.post(`${url}/api/song/view/${sid}`);
+      if (response.data.success && response.data.data.length > 0) {
+        console.log("+1 song");
+      }
+    } catch (error) {
+      // toast.error("Error Occur");
+    }
+  };
+
+  const addAlbumsView = async (aid) => {
+    try {
+      const response = await axios.post(`${url}/api/album/view/${aid}`);
+      if (response.data.success && response.data.data.length > 0) {
+        console.log("+1 album");
+      }
+    } catch (error) {
+      toast.error("Error Occur");
+    }
+  };
+
   const getAlbumsData = async () => {
     try {
       const response = await axios.get(`${url}/api/album/albums`);
@@ -365,20 +414,24 @@ const PlayerContextProvider = (props) => {
   };
 
   const getPlaylistData = async () => {
-    if (isLogin) {
-      try {
-        const response = await axios.get(`${url}/api/playlist/list`, {
-          headers: {
-            Authorization: `Bearer ${infoLogin.token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        if (response.data.success) {
-          setPlaylistsData(response.data.data);
+    try {
+      const response = await axios.get(`${url}/api/playlist/list`);
+      if (response.data.success) {
+        setPlaylistsData(response?.data?.data);
+        if (isLogin) {
+          const dataPlaylist = response?.data?.data?.filter((item) => {
+            return item?.user?._id === infoLogin?.id;
+          });
+          console.log("dataPlaylist", dataPlaylist);
+          setPlaylistsYourData(dataPlaylist);
         }
-      } catch (error) {
-        toast.error("Error Occur");
+        const dataPublic = response?.data?.data?.filter((item) => {
+          return item.status === "public";
+        });
+        setPlaylistsPublicData(dataPublic);
       }
+    } catch (error) {
+      toast.error("Error Occur");
     }
   };
 
@@ -400,16 +453,16 @@ const PlayerContextProvider = (props) => {
     }
   };
 
-  const getPlaylistPublicData = async () => {
-    try {
-      const response = await axios.get(`${url}/api/playlist/all-public`);
-      if (response.data.success) {
-        setPlaylistsPublicData(response.data.data);
-      }
-    } catch (error) {
-      toast.error("Error Occur");
-    }
-  };
+  // const getPlaylistPublicData = async () => {
+  //   try {
+  //     const response = await axios.get(`${url}/api/playlist/all-public`);
+  //     if (response.data.success) {
+  //       setPlaylistsPublicData(response.data.data);
+  //     }
+  //   } catch (error) {
+  //     toast.error("Error Occur");
+  //   }
+  // };
 
   // ---------------------add, remove playlistNow--------------end
 
@@ -502,6 +555,18 @@ const PlayerContextProvider = (props) => {
       toast.info("Please login first!");
       return;
     }
+
+    let str = "";
+    if (song) {
+      str = "The song added to your library";
+    } else if (playlist) {
+      str = "The playlist added to your playlist favorite";
+    } else if (album) {
+      str = "The album added to your library";
+    } else if (artist) {
+      str = "The artist follow successfully";
+    }
+
     try {
       const value = {
         song: song || null,
@@ -517,7 +582,7 @@ const PlayerContextProvider = (props) => {
       });
 
       if (response.data.success) {
-        toast.success("Song added to library!");
+        toast.success(str);
         getLibraryData();
         //
       } else {
@@ -540,11 +605,12 @@ const PlayerContextProvider = (props) => {
     }
   };
 
-  const removeFromLibrary = async (song, playlist, album, artist) => {
+  const removeFromLibrary = async ({ song, playlist, album, artist }) => {
     if (!isLogin) {
       toast.info("Please login first!");
       return;
     }
+    console.log(song, playlist, album, artist);
     try {
       const value = {
         song: song || null,
@@ -556,11 +622,23 @@ const PlayerContextProvider = (props) => {
       if (song) {
         str = "Are you sure you want to delete the song from your library?";
       } else if (playlist) {
-        str = "Are you sure you want to delete the playlist from your library?";
+        str =
+          "Are you sure you want to delete the playlist from your playlist favorite?";
       } else if (album) {
         str = "Are you sure you want to delete the album from your library?";
       } else if (artist) {
         str = "Are you sure you want to delete the artist from your library?";
+      }
+
+      let strRes = "";
+      if (song) {
+        strRes = "The song removed from your library";
+      } else if (playlist) {
+        strRes = "The playlist removed from your playlist favorite";
+      } else if (album) {
+        strRes = "The album removed from your library";
+      } else if (artist) {
+        strRes = "The artist removed from your library";
       }
 
       if (window.confirm(str)) {
@@ -571,14 +649,15 @@ const PlayerContextProvider = (props) => {
         });
 
         if (response.data.success) {
-          toast.success("Item removed from library!");
+          toast.success(strRes);
           getLibraryData();
           getPlaylistData();
-          if (playlist) navigate("/playlist", { replace: true });
+          // if (playlist) navigate("/playlist", { replace: true });
           // getPlaylistData(); // Gọi lại API hoặc cập nhật UI nếu cần thiết
         } else {
           toast.error(
-            response.data.message || "Failed to remove item from library."
+            response.data.message ||
+              "Failed to remove item from your playlist favorite."
           );
         }
       }
@@ -587,14 +666,20 @@ const PlayerContextProvider = (props) => {
         // Nếu API trả về mã lỗi
         if (error.response.status === 400) {
           toast.error(
-            error.response.data.message || "Failed to add item to library."
+            error.response.data.message ||
+              "Failed to remove item to your playlist favorite."
           );
         } else {
-          toast.error("Error occurred while adding to library");
+          toast.error(
+            "Error occurred while removeing to your playlist favorite"
+          );
         }
       } else {
-        console.error("Error while adding to library:", error);
-        toast.error("Error occurred while adding to library");
+        console.error(
+          "Error while removeing to your playlist favorite:",
+          error
+        );
+        toast.error("Error occurred while removeing to your playlist favorite");
       }
     }
   };
@@ -726,6 +811,23 @@ const PlayerContextProvider = (props) => {
     }
   };
   // -------------------------------add.remove Playlist--------end
+  const getInfoUser = async () => {
+    if (isLogin) {
+      try {
+        const response = await axios.get(`${url}/api/user/info-user`, {
+          headers: {
+            Authorization: `Bearer ${infoLogin.token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (response.data.success) {
+          setInfoUser(response.data.data);
+        }
+      } catch (error) {
+        toast.error("Error Occur");
+      }
+    }
+  };
 
   const logout = () => {
     localStorage.clear();
@@ -734,6 +836,7 @@ const PlayerContextProvider = (props) => {
       name: "",
       id: "",
     });
+    window.location.reload();
   };
   // login-start-------------------------------------------------------------LOGIN
   const verifyToken = (keyName) => {
@@ -846,21 +949,29 @@ const PlayerContextProvider = (props) => {
       await getSongsData();
       await getAlbumsData();
       await getArtistsData();
-      await getPlaylistPublicData();
+      // await getPlaylistPublicData();
+      await getPlaylistData();
 
       if (infoLogin.id) {
         await getLibraryData();
-        await getPlaylistData();
+        await getInfoUser();
       }
     };
 
     fetchData();
   }, [isLogin, infoLogin]);
 
+  // useEffect(() => {
+  //   console.log("playlistsData", playlistsData);
+  //   console.log("playlistsYourData", playlistsYourData);
+  //   console.log("playlistsPublicData", playlistsPublicData);
+  // }, [playlistsData, playlistsYourData, playlistsPublicData]);
+
   const contextValue = {
     addAlbumToQueue,
     addInfoPlayList,
     addPlaylist,
+    addPlaylistToQueue,
     addSongToPlaylist,
     addSongToQueue,
     addToLibrary,
@@ -870,6 +981,7 @@ const PlayerContextProvider = (props) => {
     checkSongPlay,
     closeAddPlaylist,
     editInfoPlayList,
+    infoUser,
     infoLogin,
     infoPlayListNow,
     isLogin,
@@ -881,11 +993,14 @@ const PlayerContextProvider = (props) => {
     next,
     openAddPlaylist,
     pause,
+    pageInfo,
+    getInfoUser,
     play,
     playListNow,
     playStatus,
     playWithId,
     playlistsData,
+    playlistsYourData,
     playlistsPublicData,
     previous,
     removeFromLibrary,
@@ -901,12 +1016,15 @@ const PlayerContextProvider = (props) => {
     setPlayStatus,
     setTime,
     setTrack,
+    setType,
     setIsRandom,
+    setPageInfo,
     songsData,
     songsDataNew,
     songsDataWeekly,
     time,
     track,
+    type,
     updateImagePlaylist,
     volumeBar,
     volumeBg,

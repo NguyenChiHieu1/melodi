@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 // import { albumsData } from "../assets/assets";
 import AlbumItem from "../components/AlbumItem";
@@ -9,16 +9,39 @@ import { useContext } from "react";
 import Slider from "../components/Slider";
 import TrendSongTable from "../components/TrendSongTable";
 import ArtistItem from "../components/ArtistItem";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const DisplayHome = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [topAlbums, setTopAlbums] = useState([]);
   const { songsData, albumsData, songsDataWeekly, songsDataNew, artistsData } =
     useContext(PlayerContext);
 
+  useEffect(() => {
+    const getTopAlbums = async () => {
+      const topAlbumsList = await albumsData
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 6);
+      setTopAlbums(topAlbumsList);
+    };
+
+    getTopAlbums();
+  }, [albumsData]);
+
+  useEffect(() => {
+    // Kiểm tra nếu URL chứa "#vitri"
+    if (location.hash === "#1") {
+      const vitriElement = document.getElementById("1");
+      if (vitriElement) {
+        vitriElement.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [location]);
   return (
     <>
       <Navbar />
+      <div id="1"></div>
       <div className="mb-4">
         <Slider />
       </div>
@@ -81,7 +104,7 @@ const DisplayHome = () => {
 
       {/* Trendinge Songs */}
       <div className="my-10 ml-5">
-        <h1 className="my-5 font-bold text-3xl capitalize">
+        <h1 className="font-bold text-3xl capitalize">
           Trending <span className="text-[#EE10B0]">Songs</span>
         </h1>
         <TrendSongTable />
@@ -101,7 +124,10 @@ const DisplayHome = () => {
               id={item._id}
             />
           ))}
-          <div className="flex justify-center flex-col text-white ml-4 hover:text-[#EE10B0]">
+          <div
+            className="flex justify-center flex-col text-white ml-4 hover:text-[#EE10B0]"
+            onClick={() => navigate("/artists/#4")}
+          >
             <span className="w-16 h-16 bg-[#1E1E1E] rounded-full flex items-center justify-center cursor-pointer text-white text-3xl hover:bg-[#EE10B0]">
               +
             </span>
@@ -112,13 +138,13 @@ const DisplayHome = () => {
         </div>
       </div>
 
-      {/* Top Albums */}
+      {/* New Albums */}
       <div className="my-10 ml-5">
         <h1 className="my-5 font-bold text-3xl capitalize">
-          Top <span className="text-[#0E9EEF]">Albums</span>
+          New <span className="text-[#0E9EEF]">Albums</span>
         </h1>
         <div className="flex overflow-auto gap-4">
-          {albumsData.slice(0, 6).map((item, index) => (
+          {topAlbums?.map((item, index) => (
             <AlbumItem
               key={index}
               name={item.name}
@@ -129,7 +155,7 @@ const DisplayHome = () => {
           ))}
           <div
             className="flex justify-center flex-col text-white ml-4 hover:text-[#EE10B0]"
-            onClick={() => navigate("/albums")}
+            onClick={() => navigate("/albums/#3")}
           >
             <span className="w-16 h-16 bg-[#1E1E1E] rounded-full flex items-center justify-center cursor-pointer text-white text-3xl hover:bg-[#EE10B0]">
               +

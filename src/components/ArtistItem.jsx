@@ -1,8 +1,14 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
-const ArtistItem = ({ image, artist }) => {
+const ArtistItem = ({ image, artist, id }) => {
+  const navigate = useNavigate();
+
   return (
-    <div className="flex flex-col items-center cursor-pointer">
+    <div
+      className="flex flex-col items-center cursor-pointer"
+      onClick={() => navigate(`/artists/${id}`)}
+    >
       <img
         src={image}
         alt=""

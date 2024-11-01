@@ -5,22 +5,22 @@ import TableItem from "./TableItem";
 const TrendSongTable = () => {
   const { songsData, playWithId } = useContext(PlayerContext);
   const [songTop10, setSongTop] = useState([]);
+  const [top, setTop] = useState(10);
   useEffect(() => {
     const topSongs = songsData
       .sort((a, b) => b.viewCount - a.viewCount)
-      .slice(0, 10);
+      .slice(0, top);
     setSongTop(topSongs);
-  }, [songsData]);
+  }, [top, songsData]);
   return (
     <div className="flex flex-col gap-4">
       {/* Tiêu đề cột */}
-      <div className="grid grid-cols-[0.6fr_3fr_1.5fr_3fr_0.5fr_0.5fr_1fr] gap-2 p-2 items-center text-white font-bold text-[18px]">
+      <div className="grid grid-cols-[0.6fr_3fr_1.5fr_3.4fr_0.5fr_1fr] gap-2 p-2 items-center text-white font-bold text-[18px]">
         <div></div>
         <div></div>
         <div>Release Date</div>
         <div>Music Genre</div>
         <div>Time</div>
-        <div></div>
       </div>
 
       {/* Hàng dữ liệu */}
@@ -43,13 +43,29 @@ const TrendSongTable = () => {
           </div>
         ))
       ) : (
-        <p>No songs available.</p> // Thay thế nội dung khác nếu không có bài hát
+        <p>No songs available.</p>
       )}
       <div className=" flex justify-center ">
-        <div className="text-white py-1 px-5 rounded-lg bg-[#1E1E1E] flex justify-center items-center gap-2 cursor-pointer hover:bg-[#EE10B0]">
-          <p className="text-4xl mb-2">+</p>
-          <p className="text-xl font-semibold ">View All</p>
-        </div>
+        {songsData?.length >= top ? (
+          <div
+            className="text-white px-3 rounded-lg bg-[#1E1E1E] flex justify-center items-center gap-2 cursor-pointer hover:bg-[#616061]"
+            onClick={() => {
+              setTop((prev) => prev + 10);
+            }}
+          >
+            <p className="text-4xl mb-2">+</p>
+            <p className="text-lg font-semibold ">View more</p>
+          </div>
+        ) : (
+          <div
+            className="text-white px-3 py-2 rounded-lg bg-[#1E1E1E] flex justify-center items-center gap-2 cursor-pointer hover:bg-[#616061]"
+            onClick={() => {
+              setTop((prev) => prev - 10);
+            }}
+          >
+            <p className="text-lg font-semibold ">Collapse</p>
+          </div>
+        )}
       </div>
     </div>
   );

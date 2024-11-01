@@ -1,18 +1,31 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import { PlayerContext } from "../context/PlayerContext";
 import ListItem from "../components/ListItem";
 import Navbar from "../components/Navbar";
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 
-const DisplayPlaylist = () => {
+const DisplayYourPlaylist = () => {
+  const location = useLocation();
   const [pageAll, setPageAll] = useState("All");
-  const { playlistsData, infoLogin, libraryData, openAddPlaylist } =
+  const { playlistsYourData, infoLogin, libraryData, openAddPlaylist } =
     useContext(PlayerContext);
   //   console.log("playlistsData", playlistsData);
   //   console.log("libraryData", libraryData);
+
+  useEffect(() => {
+    // Kiểm tra nếu URL chứa "#vitri"
+    if (location.hash === "#1") {
+      const vitriElement = document.getElementById("1");
+      if (vitriElement) {
+        vitriElement.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [location]);
   return (
     <>
       <Navbar />
+      <div id="6"></div>
       <div className="p-4">
         {/* Phần tiêu đề với các lựa chọn */}
         <div className="flex flex-row items-center space-x-4 mb-6 pb-3 border-b-2 border-gray-500">
@@ -46,7 +59,7 @@ const DisplayPlaylist = () => {
         {/* Grid cho các playlist */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
           {/* Thêm playlist mới bg-[#5c4b5b]*/}
-          <div className="flex flex-col items-center justify-center h-full   cursor-pointer hover:bg-[#6b5c6b] transition duration-300 ease-in-out">
+          <div className="flex flex-col items-center justify-center h-72 cursor-pointer hover:bg-[#6b5c6b] transition duration-300 ease-in-out">
             <div
               className="h-full w-full flex flex-col justify-center items-center border border-white rounded-lg"
               onClick={() => openAddPlaylist(null, null, null)}
@@ -60,7 +73,7 @@ const DisplayPlaylist = () => {
 
           {/* Hiển thị các playlist hiện có */}
           {pageAll === "All" &&
-            libraryData?.playlists?.map((item) => (
+            playlistsYourData.map((item) => (
               <ListItem
                 key={item._id}
                 image={item.image}
@@ -70,19 +83,22 @@ const DisplayPlaylist = () => {
               />
             ))}
           {pageAll === "Mine" &&
-            playlistsData.map((item) => (
-              <ListItem
-                key={item._id}
-                image={item.image}
-                namePlaylist={item.name}
-                nameAuthor={item.user.username}
-                id={item._id}
-              />
-            ))}
+            playlistsYourData
+              ?.filter((item) => item.status === "private")
+              .map((item) => (
+                <ListItem
+                  key={item._id}
+                  image={item.image}
+                  namePlaylist={item.name}
+                  nameAuthor={item.user.username}
+                  id={item._id}
+                />
+              ))}
         </div>
       </div>
+      {/* //lấy ra danh mục favorite playlist # all playlist = công khai + cá nhân */}
     </>
   );
 };
 
-export default DisplayPlaylist;
+export default DisplayYourPlaylist;

@@ -10,6 +10,7 @@ const PlaylistItem = ({
   id,
   playlistId,
   use,
+  viewAll = true,
 }) => {
   const {
     playWithId,
@@ -32,26 +33,21 @@ const PlaylistItem = ({
     }
   }, [libraryData]);
 
-  const handleAddToLibrary = async (songId, albumId, artistId, playlistId) => {
+  const handleAddToLibrary = async (songId) => {
     await addToLibrary({
       song: songId,
-      album: albumId,
-      artist: artistId,
-      playlist: playlistId,
+      playlist: null,
+      album: null,
+      artist: null,
     });
   };
 
-  const handleRemoveFromLibrary = async (
-    songId,
-    albumId,
-    artistId,
-    playlistId
-  ) => {
+  const handleRemoveFromLibrary = async (songId) => {
     await removeFromLibrary({
       song: songId,
-      album: albumId,
-      artist: artistId,
-      playlist: playlistId,
+      playlist: null,
+      album: null,
+      artist: null,
     });
   };
 
@@ -69,8 +65,13 @@ const PlaylistItem = ({
     });
   };
 
+  const isSongInLibrary = libraryData?.songs?.some(
+    (item) => item?.song?._id.toString() === id.toString()
+  );
+
+  // [0.2fr_2.5fr_3.5fr_0.5fr_1fr]
   return (
-    <div className="group grid grid-cols-[0.2fr_2.5fr_3.5fr_0.5fr_1fr]  items-center gap-0 h-16  cursor-pointer hover:bg-[#55384b] px-5 border-t border-gray-500">
+    <div className="group grid grid-cols-[0.2fr_3.5fr_3fr_0.5fr_1fr]  items-center gap-0 h-16  cursor-pointer hover:bg-[#55384b] px-5 border-t border-gray-500">
       <div>
         <i className="fa-solid fa-grip-vertical"></i>
       </div>
@@ -93,37 +94,43 @@ const PlaylistItem = ({
       </div>
       <div>{category}</div>
       <div>
-        {songLibrary.includes(id) ? (
+        {isSongInLibrary ? (
           <i
             className="bi bi-heart-fill text-[#f348e5]  text-base"
             title="Remove song to your libary"
-            onClick={() => handleRemoveFromLibrary(id, null, null, null)}
+            onClick={() => handleRemoveFromLibrary(id)}
           ></i>
         ) : (
           <i
             className="bi bi-heart hover:text-white text-base hidden items-center group-hover:flex"
             title="Add to your libary"
-            onClick={() => handleAddToLibrary(id, null, null, null)}
+            onClick={() => handleAddToLibrary(id)}
           ></i>
         )}
       </div>
-      <div className="hidden items-center gap-6 group-hover:flex">
-        {use === "playlist" && (
+
+      {viewAll && use === "playlist" && (
+        <div className="hidden items-center gap-6 group-hover:flex">
           <i
-            className="bi bi-x text-3xl hover:text-white mb-1 "
+            className="bi bi-x text-[26px] hover:text-white mb-1 mt-[9px]"
             title="Remove song to your playlist"
             onClick={() => handleRemoveSongToPlaylist(playlistId, id)}
           ></i>
-        )}
-        {use === "listsong" && (
+        </div>
+      )}
+      {viewAll && use === "listsong" && (
+        <div className="hidden items-center gap-6 group-hover:flex">
           <i
-            className="bi bi-plus text-3xl hover:text-white mb-1 "
+            className="bi bi-plus text-[26px] hover:text-white mb-1 mt-[9px] "
             title="Add to your playlist"
             onClick={() => handleAddSongToPlaylist(playlistId, id)}
           ></i>
-        )}
+        </div>
+      )}
+
+      <div className={`time-display ${viewAll && "group-hover:hidden"}`}>
+        {time}
       </div>
-      <div className="time-display group-hover:hidden">{time}</div>
     </div>
   );
 };
